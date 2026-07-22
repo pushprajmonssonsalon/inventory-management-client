@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Raw palette - overridden inside .dark. @theme below maps Tailwind's
+   color utilities (bg-base, text-text, etc.) onto these variables, so
+   toggling the 'dark' class on <html> re-themes every utility at once. */
+:root {
+  --base: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glow-1: rgba(16, 185, 129, 0.06);
+  --glow-2: rgba(34, 211, 238, 0.05);
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  color-scheme: light;
+}
+
+.dark {
+  --base: #0b0f14;
+  --surface: #10151d;
+  --surface-2: #161d27;
+  --border: #232c39;
+  --text: #e7ebf2;
+  --text-muted: #8a94a6;
+  --glass-bg: rgba(22, 29, 39, 0.6);
+  --glow-1: rgba(16, 185, 129, 0.08);
+  --glow-2: rgba(34, 211, 238, 0.06);
+  --scrollbar-thumb: #2a3441;
+  --scrollbar-thumb-hover: #384457;
+  color-scheme: dark;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-base: var(--base);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-emerald: #10b981;
+  --color-cyan: #22d3ee;
+  --color-amber: #fbbf24;
+  --color-rose: #f87171;
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+}
+
+body {
+  background-color: var(--color-base);
+  background-image:
+    radial-gradient(circle at 15% 0%, var(--glow-1), transparent 45%),
+    radial-gradient(circle at 85% 20%, var(--glow-2), transparent 40%);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Glass card */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--color-border);
+  backdrop-filter: blur(12px);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-fade-in {
+  animation: fade-in 0.35s ease-out both;
+}
+.animate-slide-up {
+  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in, .animate-slide-up, .animate-pulse-soft {
+    animation: none;
+  }
+}
+
+/* Focus visibility */
+:focus-visible {
+  outline: 2px solid var(--color-emerald);
+  outline-offset: 2px;
+}
