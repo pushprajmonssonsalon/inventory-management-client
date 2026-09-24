@@ -1,32 +1,39 @@
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import toast from 'react-hot-toast';
-import { LuArrowDownToLine, LuUndo2 } from 'react-icons/lu';
-import api from '../services/api';
-import { fetchProducts } from '../store/slices/productSlice';
+import { useEffect, useState, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
+import { LuArrowDownToLine, LuUndo2 } from "react-icons/lu";
+import api from "../services/api";
+import { fetchProducts } from "../store/slices/productSlice";
+import { Html5Qrcode } from "html5-qrcode";
+import { LuScanLine } from "react-icons/lu";
 
 const returnTypeOptions = [
-  { value: 'customer', label: 'Customer return' },
-  { value: 'supplier', label: 'Supplier return' },
-  { value: 'damaged', label: 'Damaged / defective' },
+  { value: "customer", label: "Customer return" },
+  { value: "supplier", label: "Supplier return" },
+  { value: "damaged", label: "Damaged / defective" },
 ];
 
 const StockInPage = () => {
   const dispatch = useDispatch();
   const { items: products } = useSelector((state) => state.products);
-  const [productId, setProductId] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [note, setNote] = useState('');
+  const [productId, setProductId] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // 'stock_in' = a fresh purchase/restock. 'return' = stock coming back in
   // from a customer, a supplier, or as damaged goods - each of which needs
   // a reason and a reference (order/RMA/PO number) for traceability.
-  const [transactionType, setTransactionType] = useState('stock_in');
-  const [returnType, setReturnType] = useState('customer');
-  const [referenceId, setReferenceId] = useState('');
+  const [transactionType, setTransactionType] = useState("stock_in");
+  const [returnType, setReturnType] = useState("customer");
+  const [referenceId, setReferenceId] = useState("");
 
-  const isReturn = transactionType === 'return';
+  const scannerRef = useRef(null);
+  const quantityRef = useRef(null);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanValue, setScanValue] = useState("");
+
+  const isReturn = transactionType === "return";
 
   useEffect(() => {
     dispatch(fetchProducts());
@@ -35,41 +42,136 @@ const StockInPage = () => {
   const selected = products.find((p) => p._id === productId);
 
   const resetForm = () => {
-    setQuantity('');
-    setNote('');
-    setReferenceId('');
+    setQuantity("");
+    setNote("");
+    setReferenceId("");
   };
+
+  const startScanner = () => {
+    setShowScanner(true);
+  };
+
+  useEffect(() => {
+    if (!showScanner) return;
+
+    let scanner;
+    let isMounted = true;
+
+    const startScanner = async () => {
+      try {
+        scanner = new Html5Qrcode("qr-reader");
+        scannerRef.current = scanner;
+
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: 250,
+          },
+          async (decodedText) => {
+            if (!isMounted) return;
+
+            setScanValue(decodedText);
+
+            const match = products.find(
+              (p) => p.sku?.toLowerCase() === decodedText.trim().toLowerCase(),
+            );
+
+            if (!match) {
+              toast.error(`No product found for "${decodedText}"`);
+              return;
+            }
+
+            setProductId(match._id);
+            toast.success(`Scanned: ${match.name}`);
+
+            // Stop scanner only here
+            try {
+              if (scanner.isScanning) {
+                await scanner.stop();
+              }
+            } catch (err) {
+              console.error("Error stopping scanner:", err);
+            }
+
+            if (isMounted) {
+              setShowScanner(false);
+
+              // Focus quantity input after scanner closes
+              setTimeout(() => {
+                quantityRef.current?.focus();
+              }, 100);
+            }
+          },
+          (errorMessage) => {
+            // Ignore normal QR scanning errors
+          },
+        );
+      } catch (error) {
+        console.error("QR scanner error:", error);
+        toast.error("Unable to access camera or start QR scanner");
+
+        if (isMounted) {
+          setShowScanner(false);
+        }
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      isMounted = false;
+
+      // Don't blindly stop the scanner here.
+      // Only clean it up if it is still actually scanning.
+      if (scanner) {
+        try {
+          if (scanner.isScanning) {
+            scanner.stop().catch((err) => {
+              console.error("Scanner cleanup error:", err);
+            });
+          }
+        } catch (err) {
+          console.error("Scanner cleanup error:", err);
+        }
+      }
+
+      scannerRef.current = null;
+    };
+  }, [showScanner, products]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!productId || !quantity || Number(quantity) <= 0) {
-      toast.error('Select a product and enter a valid quantity');
+      toast.error("Select a product and enter a valid quantity");
       return;
     }
     if (isReturn && !referenceId.trim()) {
-      toast.error('Enter a reference number for this return (order, RMA, or PO)');
+      toast.error(
+        "Enter a reference number for this return (order, RMA, or PO)",
+      );
       return;
     }
 
     setSubmitting(true);
     try {
-      await api.post('/stock/in', {
+      await api.post("/stock/in", {
         productId,
         quantity: Number(quantity),
         note,
-        source: isReturn ? 'return' : 'purchase',
+        source: isReturn ? "return" : "purchase",
         ...(isReturn && { returnType, referenceId: referenceId.trim() }),
       });
       toast.success(
         isReturn
           ? `Logged return of ${quantity} units for ${selected?.name}`
-          : `Added ${quantity} units to ${selected?.name}`
+          : `Added ${quantity} units to ${selected?.name}`,
       );
       resetForm();
       dispatch(fetchProducts());
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to record stock in');
+      toast.error(err.response?.data?.message || "Failed to record stock in");
     } finally {
       setSubmitting(false);
     }
@@ -79,21 +181,28 @@ const StockInPage = () => {
     <div className="mx-auto flex max-w-lg flex-col gap-5">
       <div>
         <h1 className="text-xl font-semibold text-text">Stock In</h1>
-        <p className="text-sm text-text-muted">Record incoming inventory or a return</p>
+        <p className="text-sm text-text-muted">
+          Record incoming inventory or a return
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="glass animate-slide-up flex flex-col gap-4 rounded-xl p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="glass animate-slide-up flex flex-col gap-4 rounded-xl p-6"
+      >
         {/* Transaction type toggle */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-text-muted">Type</label>
+          <label className="mb-1.5 block text-xs font-medium text-text-muted">
+            Type
+          </label>
           <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-surface-2 p-1">
             <button
               type="button"
-              onClick={() => setTransactionType('stock_in')}
+              onClick={() => setTransactionType("stock_in")}
               className={`flex items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition-colors ${
                 !isReturn
-                  ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white'
-                  : 'text-text-muted hover:text-text'
+                  ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white"
+                  : "text-text-muted hover:text-text"
               }`}
             >
               <LuArrowDownToLine size={15} />
@@ -101,11 +210,11 @@ const StockInPage = () => {
             </button>
             <button
               type="button"
-              onClick={() => setTransactionType('return')}
+              onClick={() => setTransactionType("return")}
               className={`flex items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition-colors ${
                 isReturn
-                  ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white'
-                  : 'text-text-muted hover:text-text'
+                  ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white"
+                  : "text-text-muted hover:text-text"
               }`}
             >
               <LuUndo2 size={15} />
@@ -113,9 +222,25 @@ const StockInPage = () => {
             </button>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={startScanner}
+          className="flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white"
+        >
+          <LuScanLine size={16} />
+          Scan QR Code
+        </button>
 
+        {showScanner && (
+          <div
+            id="qr-reader"
+            className="mt-3 w-full overflow-hidden rounded-lg"
+          />
+        )}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-text-muted">Product</label>
+          <label className="mb-1.5 block text-xs font-medium text-text-muted">
+            Product
+          </label>
           <select
             required
             value={productId}
@@ -180,13 +305,19 @@ const StockInPage = () => {
         )}
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-text-muted">Note (optional)</label>
+          <label className="mb-1.5 block text-xs font-medium text-text-muted">
+            Note (optional)
+          </label>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={3}
             className="w-full resize-none rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-text outline-none focus:border-emerald-500/60"
-            placeholder={isReturn ? 'e.g. Item returned unopened' : 'e.g. Supplier restock, PO #1234'}
+            placeholder={
+              isReturn
+                ? "e.g. Item returned unopened"
+                : "e.g. Supplier restock, PO #1234"
+            }
           />
         </div>
 
@@ -196,7 +327,7 @@ const StockInPage = () => {
           className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
         >
           {isReturn ? <LuUndo2 size={16} /> : <LuArrowDownToLine size={16} />}
-          {isReturn ? 'Record Return' : 'Record Stock In'}
+          {isReturn ? "Record Return" : "Record Stock In"}
         </button>
       </form>
     </div>

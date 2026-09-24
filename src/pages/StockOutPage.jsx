@@ -1,56 +1,96 @@
-import { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import toast from 'react-hot-toast';
-import { LuArrowUpFromLine, LuTriangleAlert, LuScanLine } from 'react-icons/lu';
-import api from '../services/api';
-import { fetchProducts } from '../store/slices/productSlice';
+import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
+import { LuArrowUpFromLine, LuTriangleAlert, LuScanLine } from "react-icons/lu";
+import api from "../services/api";
+import { fetchProducts } from "../store/slices/productSlice";
+import { Html5Qrcode } from "html5-qrcode";
 
 const StockOutPage = () => {
   const dispatch = useDispatch();
   const { items: products } = useSelector((state) => state.products);
-  const [productId, setProductId] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [note, setNote] = useState('');
+  const [productId, setProductId] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [scanValue, setScanValue] = useState('');
+  const [scanValue, setScanValue] = useState("");
   const quantityRef = useRef(null);
+
+  const scannerRef = useRef(null);
+  const [showScanner, setShowScanner] = useState(true);
 
   useEffect(() => {
     dispatch(fetchProducts());
   }, [dispatch]);
 
+  const startScanner = async () => {
+    const scanner = new Html5Qrcode("qr-reader");
+    scannerRef.current = scanner;
+
+    setShowScanner(true);
+    await scanner.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: 250,
+      },
+      (decodedText) => {
+        setScanValue(decodedText);
+
+        const match = products.find(
+          (p) => p.sku.toLowerCase() === decodedText.toLocaleLowerCase(),
+        );
+
+        if (match) {
+          setProductId(match._id);
+          toast.success(`Scanned: ${match.name}`);
+          quantityRef.current?.focus();
+        } else {
+          toast.error(`No product found for "${decodedText}"`);
+        }
+
+        scanner.stop();
+        setShowScanner(false);
+      },
+    );
+  };
+
   // Barcode scanners act like a keyboard: they type the code then send an
   // Enter keystroke. We just listen for Enter and match against the SKU of
   // products already loaded in state - no extra API call needed.
   const handleScan = (e) => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== "Enter") return;
     e.preventDefault();
 
     const code = scanValue.trim();
     if (!code) return;
 
-    const match = products.find((p) => p.sku.toLowerCase() === code.toLowerCase());
+    const match = products.find(
+      (p) => p.sku.toLowerCase() === code.toLowerCase(),
+    );
     if (!match) {
       toast.error(`No product found for barcode "${code}"`);
-      setScanValue('');
+      setScanValue("");
       return;
     }
 
     setProductId(match._id);
-    setScanValue('');
+    setScanValue("");
     toast.success(`Scanned: ${match.name} (available: ${match.quantity})`);
     quantityRef.current?.focus();
   };
 
   const selected = products.find((p) => p._id === productId);
   const willBeLow =
-    selected && quantity && selected.quantity - Number(quantity) <= selected.minimumStock;
+    selected &&
+    quantity &&
+    selected.quantity - Number(quantity) <= selected.minimumStock;
   const exceedsAvailable = selected && Number(quantity) > selected.quantity;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!productId || !quantity || Number(quantity) <= 0) {
-      toast.error('Select a product and enter a valid quantity');
+      toast.error("Select a product and enter a valid quantity");
       return;
     }
     if (exceedsAvailable) {
@@ -60,14 +100,18 @@ const StockOutPage = () => {
 
     setSubmitting(true);
     try {
-      await api.post('/stock/out', { productId, quantity: Number(quantity), note });
+      await api.post("/stock/out", {
+        productId,
+        quantity: Number(quantity),
+        note,
+      });
       toast.success(`Dispatched ${quantity} units of ${selected?.name}`);
-      setQuantity('');
-      setNote('');
-      setScanValue('');
+      setQuantity("");
+      setNote("");
+      setScanValue("");
       dispatch(fetchProducts());
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to record stock out');
+      toast.error(err.response?.data?.message || "Failed to record stock out");
     } finally {
       setSubmitting(false);
     }
@@ -80,7 +124,10 @@ const StockOutPage = () => {
         <p className="text-sm text-text-muted">Record outgoing inventory</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="glass animate-slide-up flex flex-col gap-4 rounded-xl p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="glass animate-slide-up flex flex-col gap-4 rounded-xl p-6"
+      >
         <div>
           <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-text-muted">
             <LuScanLine size={14} />
@@ -95,10 +142,25 @@ const StockOutPage = () => {
             autoComplete="off"
             className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 font-mono text-sm text-text outline-none focus:border-emerald-500/60"
           />
+          <button
+            type="button"
+            onClick={startScanner}
+            className="mt-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm text-white"
+          >
+            📷 Scan QR
+          </button>
+          {showScanner && (
+            <div
+              id="qr-reader"
+              className="mt-3 w-full overflow-hidden rounded-lg"
+            />
+          )}
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-text-muted">Product</label>
+          <label className="mb-1.5 block text-xs font-medium text-text-muted">
+            Product
+          </label>
           <select
             required
             value={productId}
@@ -116,7 +178,12 @@ const StockOutPage = () => {
 
         <div>
           <label className="mb-1.5 block text-xs font-medium text-text-muted">
-            Quantity to dispatch {selected && <span className="text-text-muted/70">(available: {selected.quantity})</span>}
+            Quantity to dispatch{" "}
+            {selected && (
+              <span className="text-text-muted/70">
+                (available: {selected.quantity})
+              </span>
+            )}
           </label>
           <input
             ref={quantityRef}
@@ -138,12 +205,15 @@ const StockOutPage = () => {
         {!exceedsAvailable && willBeLow && (
           <p className="flex items-center gap-1.5 text-xs text-amber-400">
             <LuTriangleAlert size={14} />
-            This will bring stock at or below the minimum ({selected.minimumStock} units)
+            This will bring stock at or below the minimum (
+            {selected.minimumStock} units)
           </p>
         )}
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-text-muted">Note (optional)</label>
+          <label className="mb-1.5 block text-xs font-medium text-text-muted">
+            Note (optional)
+          </label>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
