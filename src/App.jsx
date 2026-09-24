@@ -11,6 +11,7 @@ import ProductsPage from './pages/ProductsPage';
 import StockInPage from './pages/StockInPage';
 import StockOutPage from './pages/StockOutPage';
 import TransactionsPage from './pages/TransactionsPage';
+import DamagedProductsPage from './pages/DamagedProductsPage';
 
 function App() {
   const dispatch = useDispatch();
@@ -48,6 +49,7 @@ function App() {
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/stock-in" element={<StockInPage />} />
           <Route path="/stock-out" element={<StockOutPage />} />
+          <Route path="/damaged-products" element={<DamagedProductsPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
         </Route>
       </Route>

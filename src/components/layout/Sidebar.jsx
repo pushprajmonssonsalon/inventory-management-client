@@ -7,6 +7,7 @@ import {
   LuArrowUpFromLine,
   LuHistory,
   LuWarehouse,
+  LuTriangleAlert,
 } from 'react-icons/lu';
 
 const navItems = [
@@ -14,6 +15,7 @@ const navItems = [
   { to: '/products', label: 'Products', icon: LuPackage },
   { to: '/stock-in', label: 'Stock In', icon: LuArrowDownToLine },
   { to: '/stock-out', label: 'Stock Out', icon: LuArrowUpFromLine },
+  { to: '/damaged-products', label: 'Damaged Products', icon: LuTriangleAlert },
   { to: '/transactions', label: 'Transactions', icon: LuHistory },
 ];
 

@@ -14,6 +14,7 @@ const ProductTable = ({ products, loading, isAdmin, onEdit, onDelete }) => (
           <tr className="border-b border-border text-xs uppercase tracking-wide text-text-muted">
             <th className="px-4 py-3 font-medium">Name</th>
             <th className="px-4 py-3 font-medium">SKU</th>
+            <th className="px-4 py-3 font-medium">EAN</th>
             <th className="px-4 py-3 font-medium">Brand</th>
             <th className="px-4 py-3 font-medium">Quantity</th>
             <th className="px-4 py-3 font-medium">Min Stock</th>
@@ -21,14 +22,14 @@ const ProductTable = ({ products, loading, isAdmin, onEdit, onDelete }) => (
             <th className="px-4 py-3 font-medium">Updated</th>
             {isAdmin && <th className="px-4 py-3 font-medium text-right">Actions</th>}
           </tr>
-        </thead>  
+        </thead>
         <tbody className="divide-y divide-border">
           {loading &&
-            Array.from({ length: 6 }).map((_, i) => <RowSkeleton key={i} cols={isAdmin ? 8 : 7} />)}
+            Array.from({ length: 6 }).map((_, i) => <RowSkeleton key={i} cols={isAdmin ? 9 : 8} />)}
 
           {!loading && products.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? 8 : 7} className="px-4 py-10 text-center text-text-muted">
+              <td colSpan={isAdmin ? 9 : 8} className="px-4 py-10 text-center text-text-muted">
                 No products found.
               </td>
             </tr>
@@ -39,6 +40,7 @@ const ProductTable = ({ products, loading, isAdmin, onEdit, onDelete }) => (
               <tr key={p._id} className="transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03]">
                 <td className="px-4 py-3 font-medium text-text">{p.name}</td>
                 <td className="px-4 py-3 font-mono text-xs text-text-muted">{p.sku}</td>
+                <td className="px-4 py-3 font-mono text-xs text-text-muted">{p.ean || '—'}</td>
                 <td className="px-4 py-3 text-text-muted">{capitalize(p.category)}</td>
                 <td className="px-4 py-3 tabular-nums text-text">{p.quantity}</td>
                 <td className="px-4 py-3 tabular-nums text-text-muted">{p.minimumStock}</td>

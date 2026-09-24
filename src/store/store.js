@@ -4,6 +4,7 @@ import productReducer from './slices/productSlice';
 import transactionReducer from './slices/transactionSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import themeReducer from './slices/themeSlice';
+import damagedReducer from './slices/damagedSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,5 +13,6 @@ export const store = configureStore({
     transactions: transactionReducer,
     dashboard: dashboardReducer,
     theme: themeReducer,
+    damaged: damagedReducer,
   },
 });

@@ -4,8 +4,18 @@ import toast from "react-hot-toast";
 import { LuArrowDownToLine, LuUndo2 } from "react-icons/lu";
 import api from "../services/api";
 import { fetchProducts } from "../store/slices/productSlice";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { LuScanLine } from "react-icons/lu";
+
+// Restrict the scanner to 1D barcode symbologies used on retail packaging
+// (EAN/UPC) instead of QR, and skip the (heavier) QR detector entirely.
+const barcodeFormats = [
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.CODE_128,
+];
 
 const returnTypeOptions = [
   { value: "customer", label: "Customer return" },
@@ -67,20 +77,31 @@ const StockInPage = () => {
           {
             fps: 10,
             qrbox: 250,
+            formatsToSupport: barcodeFormats,
           },
           async (decodedText) => {
             if (!isMounted) return;
 
-            setScanValue(decodedText);
+            const ean = decodedText.trim();
+            setScanValue(ean);
 
-            const match = products.find(
-              (p) => p.sku?.toLowerCase() === decodedText.trim().toLowerCase(),
-            );
-
-            if (!match) {
-              toast.error(`No product found for "${decodedText}"`);
+            let match;
+            try {
+              const { data } = await api.get(
+                `/products/ean/${encodeURIComponent(ean)}`,
+              );
+              match = data;
+            } catch (err) {
+              if (!isMounted) return;
+              if (err.response?.status === 404) {
+                toast.error(`No product found for barcode "${ean}"`);
+              } else {
+                toast.error("Failed to look up scanned barcode");
+              }
               return;
             }
+
+            if (!isMounted) return;
 
             setProductId(match._id);
             toast.success(`Scanned: ${match.name}`);
@@ -104,12 +125,12 @@ const StockInPage = () => {
             }
           },
           (errorMessage) => {
-            // Ignore normal QR scanning errors
+            // Ignore normal scanning "no barcode in frame" errors
           },
         );
       } catch (error) {
-        console.error("QR scanner error:", error);
-        toast.error("Unable to access camera or start QR scanner");
+        console.error("Barcode scanner error:", error);
+        toast.error("Unable to access camera or start barcode scanner");
 
         if (isMounted) {
           setShowScanner(false);
@@ -138,7 +159,12 @@ const StockInPage = () => {
 
       scannerRef.current = null;
     };
-  }, [showScanner, products]);
+    // Scanning now resolves the product via a DB lookup (by EAN) instead of
+    // matching the in-memory `products` list, so the effect no longer needs
+    // to depend on `products` - re-running it whenever the product list
+    // refetches (e.g. after a stock update) would otherwise restart the
+    // camera mid-scan.
+  }, [showScanner]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -228,12 +254,13 @@ const StockInPage = () => {
           className="flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white"
         >
           <LuScanLine size={16} />
-          Scan QR Code
+          Scan Barcode
         </button>
 
         {showScanner && (
           <div
             id="qr-reader"
+            // (kept as "qr-reader" - it's just the DOM node id html5-qrcode mounts into)
             className="mt-3 w-full overflow-hidden rounded-lg"
           />
         )}

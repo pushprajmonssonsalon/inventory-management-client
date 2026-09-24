@@ -3,7 +3,7 @@ import { capitalize } from './ProductTable';
 
 const categories = ['Spring h2o', 'Casmara', 'Argatin', 'Skin co.', 'Rica', 'Loreal', 'Ola candy', 'Ikonic','Skin co. nyc'];
 
-const emptyForm = { name: '', sku: '', category: categories[0], quantity: 0, minimumStock: 10 };
+const emptyForm = { name: '', sku: '', ean: '', category: categories[0], quantity: 0, minimumStock: 10 };
 
 const ProductForm = ({ initialValue, onSubmit, onCancel, submitting }) => {
   const [form, setForm] = useState(initialValue || emptyForm);
@@ -40,6 +40,16 @@ const ProductForm = ({ initialValue, onSubmit, onCancel, submitting }) => {
           required
           value={form.sku}
           onChange={handleChange('sku')}
+          className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 font-mono text-sm text-text outline-none focus:border-emerald-500/60"
+        />
+      </div>
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-text-muted">EAN / Barcode</label>
+        <input
+          required
+          value={form.ean || ''}
+          onChange={handleChange('ean')}
+          placeholder="e.g. 8901234567890"
           className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 font-mono text-sm text-text outline-none focus:border-emerald-500/60"
         />
       </div>
