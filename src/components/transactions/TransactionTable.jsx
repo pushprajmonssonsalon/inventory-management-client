@@ -15,6 +15,9 @@ const TransactionTable = ({ transactions, loading }) => (
         <thead>
           <tr className="border-b border-border text-xs uppercase tracking-wide text-text-muted">
             <th className="px-4 py-3 font-medium">Product</th>
+            <th className="px-4 py-3 font-medium">Pack Size</th>
+            <th className="px-4 py-3 font-medium">MRP</th>
+            <th className="px-4 py-3 font-medium">Expiry Date</th>
             <th className="px-4 py-3 font-medium">Action</th>
             <th className="px-4 py-3 font-medium">Qty</th>
             <th className="px-4 py-3 font-medium">Previous</th>
@@ -25,11 +28,11 @@ const TransactionTable = ({ transactions, loading }) => (
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {loading && Array.from({ length: 8 }).map((_, i) => <RowSkeleton key={i} cols={8} />)}
+          {loading && Array.from({ length: 8 }).map((_, i) => <RowSkeleton key={i} cols={11} />)}
 
           {!loading && transactions.length === 0 && (
             <tr>
-              <td colSpan={8} className="px-4 py-10 text-center text-text-muted">
+              <td colSpan={11} className="px-4 py-10 text-center text-text-muted">
                 No transactions found.
               </td>
             </tr>
@@ -43,6 +46,13 @@ const TransactionTable = ({ transactions, loading }) => (
                   <td className="px-4 py-3">
                     <p className="font-medium text-text">{t.productId?.name || '—'}</p>
                     <p className="font-mono text-xs text-text-muted">{t.productId?.sku}</p>
+                  </td>
+                  <td className="px-4 py-3 text-text-muted">{t.productId?.packSize || '—'}</td>
+                  <td className="px-4 py-3 tabular-nums text-text-muted">
+                    {t.productId?.mrp != null ? `₹${t.productId.mrp}` : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-text-muted">
+                    {t.productId?.expiryDate ? new Date(t.productId.expiryDate).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-1.5">

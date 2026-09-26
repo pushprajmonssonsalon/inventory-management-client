@@ -18,6 +18,9 @@ const ProductTable = ({ products, loading, isAdmin, onEdit, onDelete }) => (
             <th className="px-4 py-3 font-medium">Brand</th>
             <th className="px-4 py-3 font-medium">Quantity</th>
             <th className="px-4 py-3 font-medium">Min Stock</th>
+            <th className="px-4 py-3 font-medium">Pack Size</th>
+            <th className="px-4 py-3 font-medium">MRP</th>
+            <th className="px-4 py-3 font-medium">Expiry Date</th>
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="px-4 py-3 font-medium">Updated</th>
             {isAdmin && <th className="px-4 py-3 font-medium text-right">Actions</th>}
@@ -25,11 +28,11 @@ const ProductTable = ({ products, loading, isAdmin, onEdit, onDelete }) => (
         </thead>
         <tbody className="divide-y divide-border">
           {loading &&
-            Array.from({ length: 6 }).map((_, i) => <RowSkeleton key={i} cols={isAdmin ? 9 : 8} />)}
+            Array.from({ length: 6 }).map((_, i) => <RowSkeleton key={i} cols={isAdmin ? 12 : 11} />)}
 
           {!loading && products.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? 9 : 8} className="px-4 py-10 text-center text-text-muted">
+              <td colSpan={isAdmin ? 12 : 11} className="px-4 py-10 text-center text-text-muted">
                 No products found.
               </td>
             </tr>
@@ -44,6 +47,11 @@ const ProductTable = ({ products, loading, isAdmin, onEdit, onDelete }) => (
                 <td className="px-4 py-3 text-text-muted">{capitalize(p.category)}</td>
                 <td className="px-4 py-3 tabular-nums text-text">{p.quantity}</td>
                 <td className="px-4 py-3 tabular-nums text-text-muted">{p.minimumStock}</td>
+                <td className="px-4 py-3 text-text-muted">{p.packSize || '—'}</td>
+                <td className="px-4 py-3 tabular-nums text-text-muted">{p.mrp != null ? `₹${p.mrp}` : '—'}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">
+                  {p.expiryDate ? new Date(p.expiryDate).toLocaleDateString() : '—'}
+                </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={p.status} />
                 </td>

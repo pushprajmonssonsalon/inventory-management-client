@@ -11,6 +11,7 @@ import ProductsPage from './pages/ProductsPage';
 import StockInPage from './pages/StockInPage';
 import StockOutPage from './pages/StockOutPage';
 import TransactionsPage from './pages/TransactionsPage';
+import StockImportPage from './pages/StockImportPage';
 import DamagedProductsPage from './pages/DamagedProductsPage';
 
 function App() {
@@ -51,6 +52,9 @@ function App() {
           <Route path="/stock-out" element={<StockOutPage />} />
           <Route path="/damaged-products" element={<DamagedProductsPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/transactions/import" element={<StockImportPage />} />
+          </Route>
         </Route>
       </Route>
 

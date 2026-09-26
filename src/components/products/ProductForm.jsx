@@ -3,17 +3,31 @@ import { capitalize } from './ProductTable';
 
 const categories = ['Spring h2o', 'Casmara', 'Argatin', 'Skin co.', 'Rica', 'Loreal', 'Ola candy', 'Ikonic','Skin co. nyc'];
 
-const emptyForm = { name: '', sku: '', ean: '', category: categories[0], quantity: 0, minimumStock: 10 };
+const emptyForm = {
+  name: '',
+  sku: '',
+  ean: '',
+  category: categories[0],
+  quantity: 0,
+  minimumStock: 10,
+  packSize: '',
+  mrp: '',
+  expiryDate: '',
+};
 
 const ProductForm = ({ initialValue, onSubmit, onCancel, submitting }) => {
   const [form, setForm] = useState(initialValue || emptyForm);
   useEffect(() => {
-    setForm(initialValue || emptyForm);
+    setForm(
+      initialValue
+        ? { ...initialValue, expiryDate: initialValue.expiryDate ? initialValue.expiryDate.slice(0, 10) : '' }
+        : emptyForm
+    );
   }, [initialValue]);
 
   const handleChange = (field) => (e) => {
-    const value = ['quantity', 'minimumStock'].includes(field)
-      ? Number(e.target.value)
+    const value = ['quantity', 'minimumStock', 'mrp'].includes(field)
+      ? e.target.value === '' ? '' : Number(e.target.value)
       : e.target.value;
     setForm((f) => ({ ...f, [field]: value }));
   };
@@ -90,6 +104,40 @@ const ProductForm = ({ initialValue, onSubmit, onCancel, submitting }) => {
             className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-text outline-none focus:border-emerald-500/60"
           />
         </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-text-muted">Pack size</label>
+          <input
+            required
+            value={form.packSize || ''}
+            onChange={handleChange('packSize')}
+            placeholder="e.g. 500ml"
+            className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-text outline-none focus:border-emerald-500/60"
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-text-muted">MRP</label>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            required
+            value={form.mrp ?? ''}
+            onChange={handleChange('mrp')}
+            className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-text outline-none focus:border-emerald-500/60"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-text-muted">Expiry date</label>
+        <input
+          type="date"
+          required
+          value={form.expiryDate || ''}
+          onChange={handleChange('expiryDate')}
+          className="w-full rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-text outline-none focus:border-emerald-500/60"
+        />
       </div>
 
       <div className="mt-2 flex justify-end gap-2">

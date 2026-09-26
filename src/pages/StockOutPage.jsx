@@ -254,6 +254,25 @@ const StockOutPage = () => {
           </select>
         </div>
 
+        {selected && (
+          <div className="grid grid-cols-3 gap-3 rounded-lg border border-border bg-surface-2 p-3 text-xs">
+            <div>
+              <p className="text-text-muted">Pack Size</p>
+              <p className="font-medium text-text">{selected.packSize || '—'}</p>
+            </div>
+            <div>
+              <p className="text-text-muted">MRP</p>
+              <p className="font-medium text-text">{selected.mrp != null ? `₹${selected.mrp}` : '—'}</p>
+            </div>
+            <div>
+              <p className="text-text-muted">Expiry Date</p>
+              <p className="font-medium text-text">
+                {selected.expiryDate ? new Date(selected.expiryDate).toLocaleDateString() : '—'}
+              </p>
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="mb-1.5 block text-xs font-medium text-text-muted">
             Quantity to dispatch{" "}

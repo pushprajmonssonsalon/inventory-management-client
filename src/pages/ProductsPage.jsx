@@ -82,6 +82,9 @@ const ProductsPage = () => {
       "Minimum Stock": item?.minimumStock,
       "Status": item?.status,
       "Brand": item?.category || "",
+      "Pack Size": item?.packSize || "",
+      "MRP": item?.mrp ?? "",
+      "Expiry Date": item?.expiryDate ? item.expiryDate.split('T')[0] : "",
       "Updated": item?.updatedAt.split('T')[0],
     }));
 

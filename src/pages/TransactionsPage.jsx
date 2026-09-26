@@ -1,16 +1,28 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { LuChevronLeft, LuChevronRight, LuDownload } from 'react-icons/lu';
-import { fetchTransactions, setTypeFilter, setDateFrom, setDateTo } from '../store/slices/transactionSlice';
+import { Link } from 'react-router';
+import { LuChevronLeft, LuChevronRight, LuDownload, LuUpload, LuArrowDownToLine, LuArrowUpFromLine, LuUndo2 } from 'react-icons/lu';
+import { fetchTransactions, fetchTransactionsSummary, setTypeFilter, setDateFrom, setDateTo } from '../store/slices/transactionSlice';
 import TransactionTable from '../components/transactions/TransactionTable';
 import exportToExcel from '../utils/exportToExcel';
 
+const summaryCards = [
+  { key: 'stockIn', label: 'Stock In', icon: LuArrowDownToLine, accent: 'text-emerald-400' },
+  { key: 'stockOut', label: 'Stock Out', icon: LuArrowUpFromLine, accent: 'text-cyan-400' },
+  { key: 'customerReturn', label: 'Customer Returns', icon: LuUndo2, accent: 'text-amber-400' },
+  { key: 'supplierReturn', label: 'Supplier Returns', icon: LuUndo2, accent: 'text-amber-400' },
+  { key: 'damagedReturn', label: 'Damaged Returns', icon: LuUndo2, accent: 'text-rose-400' },
+];
+
 const TransactionsPage = () => {
   const dispatch = useDispatch();
-  const { items, pagination, typeFilter, status, dateFrom, dateTo } = useSelector((state) => state.transactions);
+  const { items, pagination, typeFilter, status, dateFrom, dateTo, summary } = useSelector((state) => state.transactions);
+  const { user } = useSelector((state) => state.auth);
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     dispatch(fetchTransactions({ page: 1, dateFrom: dateFrom, dateTo: dateTo }));
+    dispatch(fetchTransactionsSummary({ dateFrom, dateTo }));
   }, [dispatch, dateFrom, dateTo]);
 
   useEffect(() => {
@@ -53,6 +65,16 @@ const handleTransactionExport = () => {
             Export All
           </button>
 
+          {isAdmin && (
+            <Link
+              to="/transactions/import"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-4 py-2.5 text-sm font-semibold text-text hover:bg-surface"
+            >
+              <LuUpload size={16} />
+              Import Excel
+            </Link>
+          )}
+
           <input
             type="date"
             value={dateFrom}
@@ -78,6 +100,18 @@ const handleTransactionExport = () => {
           </select>
         </div>
 
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {summaryCards.map(({ key, label, icon: Icon, accent }) => (
+          <div key={key} className="glass rounded-xl p-4">
+            <div className={`mb-2 flex items-center gap-1.5 text-xs font-medium ${accent}`}>
+              <Icon size={14} />
+              {label}
+            </div>
+            <p className="text-xl font-semibold text-text">{summary[key] ?? 0}</p>
+          </div>
+        ))}
       </div>
 
       <TransactionTable transactions={items} loading={status === 'loading'} />

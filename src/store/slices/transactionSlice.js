@@ -19,6 +19,23 @@ export const fetchTransactions = createAsyncThunk(
   }
 );
 
+export const fetchTransactionsSummary = createAsyncThunk(
+  'transactions/fetchSummary',
+  async ({ dateFrom, dateTo } = {}, thunkAPI) => {
+    try {
+      const params = {};
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      const { data } = await api.get('/transactions/summary', { params });
+      return data;
+    } catch (err) {
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.message || 'Failed to load transaction summary'
+      );
+    }
+  }
+);
+
 const transactionSlice = createSlice({
   name: 'transactions',
   initialState: {
@@ -29,6 +46,8 @@ const transactionSlice = createSlice({
     dateTo: '',
     status: 'idle',
     error: null,
+    summary: { stockIn: 0, stockOut: 0, customerReturn: 0, supplierReturn: 0, damagedReturn: 0, totalReturns: 0 },
+    summaryStatus: 'idle',
   },
   reducers: {
     setTypeFilter(state, action) {
@@ -54,6 +73,16 @@ const transactionSlice = createSlice({
       .addCase(fetchTransactions.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
+      })
+      .addCase(fetchTransactionsSummary.pending, (state) => {
+        state.summaryStatus = 'loading';
+      })
+      .addCase(fetchTransactionsSummary.fulfilled, (state, action) => {
+        state.summaryStatus = 'succeeded';
+        state.summary = action.payload;
+      })
+      .addCase(fetchTransactionsSummary.rejected, (state) => {
+        state.summaryStatus = 'failed';
       });
   },
 });

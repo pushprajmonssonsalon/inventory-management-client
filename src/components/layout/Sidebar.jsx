@@ -8,6 +8,7 @@ import {
   LuHistory,
   LuWarehouse,
   LuTriangleAlert,
+  LuUpload,
 } from 'react-icons/lu';
 
 const navItems = [
@@ -17,10 +18,12 @@ const navItems = [
   { to: '/stock-out', label: 'Stock Out', icon: LuArrowUpFromLine },
   { to: '/damaged-products', label: 'Damaged Products', icon: LuTriangleAlert },
   { to: '/transactions', label: 'Transactions', icon: LuHistory },
+  { to: '/transactions/import', label: 'Import Stock', icon: LuUpload, adminOnly: true },
 ];
 
 const Sidebar = ({ open, onNavigate }) => {
   const { user } = useSelector((state) => state.auth);
+  const isAdmin = user?.role === 'admin';
 
   return (
     <aside
@@ -36,10 +39,8 @@ const Sidebar = ({ open, onNavigate }) => {
       </div>
 
       <nav className="flex flex-col gap-1 p-3">
-        {navItems.map(({ to, label, icon: Icon, end }) => {
-          if (label === 'Products' && user?.role !== 'admin') {
-            // employees can still view products (read-only), so keep visible
-          }
+        {navItems.map(({ to, label, icon: Icon, end, adminOnly }) => {
+          if (adminOnly && !isAdmin) return null;
           return (
             <NavLink
               key={to}
