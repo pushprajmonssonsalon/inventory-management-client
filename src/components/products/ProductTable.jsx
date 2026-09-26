@@ -7,10 +7,10 @@ export function capitalize(word) {
 }
 
 const ProductTable = ({ products, loading, isAdmin, onEdit, onDelete }) => (
-  <div className="glass animate-slide-up overflow-hidden rounded-xl overflow-y-auto h-96">
+  <div className="glass animate-slide-up h-96 min-w-0 overflow-hidden overflow-y-auto rounded-xl">
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead>
+      <table className="w-full min-w-max whitespace-nowrap text-left text-sm">
+        <thead className="sticky top-0 z-10 bg-surface">
           <tr className="border-b border-border text-xs uppercase tracking-wide text-text-muted">
             <th className="px-4 py-3 font-medium">Name</th>
             <th className="px-4 py-3 font-medium">SKU</th>
@@ -41,7 +41,9 @@ const ProductTable = ({ products, loading, isAdmin, onEdit, onDelete }) => (
           {!loading &&
             products.map((p) => (
               <tr key={p._id} className="transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03]">
-                <td className="px-4 py-3 font-medium text-text">{p.name}</td>
+                <td className="max-w-[220px] truncate px-4 py-3 font-medium text-text" title={p.name}>
+                  {p.name}
+                </td>
                 <td className="px-4 py-3 font-mono text-xs text-text-muted">{p.sku}</td>
                 <td className="px-4 py-3 font-mono text-xs text-text-muted">{p.ean || '—'}</td>
                 <td className="px-4 py-3 text-text-muted">{capitalize(p.category)}</td>

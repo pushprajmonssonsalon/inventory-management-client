@@ -66,7 +66,7 @@ const ReturnStockPage = () => {
         </div>
 
         {selected && (
-          <div className="grid grid-cols-3 gap-3 rounded-lg border border-border bg-surface-2 p-3 text-xs">
+          <div className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-surface-2 p-3 text-xs sm:grid-cols-3">
             <div>
               <p className="text-text-muted">Pack Size</p>
               <p className="font-medium text-text">{selected.packSize || '—'}</p>

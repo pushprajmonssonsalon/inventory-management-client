@@ -14,7 +14,7 @@ const DamagedProductsPage = () => {
   }, [dispatch]);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-5">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-semibold text-text">
           <LuTriangleAlert className="text-amber-400" size={20} />
@@ -25,10 +25,10 @@ const DamagedProductsPage = () => {
         </p>
       </div>
 
-      <div className="glass animate-slide-up overflow-hidden rounded-xl">
+      <div className="glass animate-slide-up h-96 min-w-0 overflow-hidden overflow-y-auto rounded-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
+          <table className="w-full min-w-max whitespace-nowrap text-left text-sm">
+            <thead className="sticky top-0 z-10 bg-surface">
               <tr className="border-b border-border text-xs uppercase tracking-wide text-text-muted">
                 <th className="px-4 py-3 font-medium">Product</th>
                 <th className="px-4 py-3 font-medium">Pack Size</th>
@@ -59,8 +59,10 @@ const DamagedProductsPage = () => {
                     key={d._id}
                     className="transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
                   >
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-text">{d.productId?.name || "—"}</p>
+                    <td className="max-w-[200px] px-4 py-3">
+                      <p className="truncate font-medium text-text" title={d.productId?.name}>
+                        {d.productId?.name || "—"}
+                      </p>
                       <p className="font-mono text-xs text-text-muted">
                         {d.productId?.ean || d.productId?.sku || "—"}
                       </p>

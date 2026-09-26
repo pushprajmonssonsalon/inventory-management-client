@@ -133,7 +133,7 @@ const StockImportPage = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-5">
       <div>
         <h1 className="text-xl font-semibold text-text">Import Stock Transactions</h1>
         <p className="text-sm text-text-muted">

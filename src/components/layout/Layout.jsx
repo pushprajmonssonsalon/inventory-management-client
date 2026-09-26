@@ -17,9 +17,9 @@ const Layout = () => {
         />
       )}
 
-      <div className="flex min-h-screen flex-1 flex-col lg:pl-0">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-0">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="min-w-0 flex-1 p-4 lg:p-6">
           <div className="mx-auto max-w-7xl animate-fade-in">
             <Outlet />
           </div>
