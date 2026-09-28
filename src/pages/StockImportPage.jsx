@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
-import { LuUpload, LuDownload, LuFileSpreadsheet } from 'react-icons/lu';
+import { LuUpload, LuDownload, LuFileSpreadsheet, LuX } from 'react-icons/lu';
 import api from '../services/api';
 import exportToExcel from '../utils/exportToExcel';
 import { parseStockTransactionsExcel, STOCK_TRANSACTION_TYPES } from '../utils/importStockExcel';
@@ -15,11 +15,14 @@ const summaryLabels = {
   damagedReturn: 'Damaged Return',
 };
 
+const RETURN_TYPES = ['Customer Return', 'Supplier Return', 'Damaged Return'];
+
 const StockImportPage = () => {
   const dispatch = useDispatch();
   const fileInputRef = useRef(null);
   const [importing, setImporting] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [reviewRows, setReviewRows] = useState(null); // rows parsed from the sheet, editable before submit
 
   const handleImportClick = () => fileInputRef.current?.click();
 
@@ -102,12 +105,34 @@ const StockImportPage = () => {
     e.target.value = '';
     if (!file) return;
 
-    setImporting(true);
     setLastResult(null);
     try {
       const rows = await parseStockTransactionsExcel(file);
-      const { data } = await api.post('/stock/import', { rows });
+      setReviewRows(rows);
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to read file');
+    }
+  };
+
+  const updateRow = (index, field, value) => {
+    setReviewRows((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+  };
+
+  const cancelReview = () => setReviewRows(null);
+
+  const handleProcessImport = async () => {
+    const missingType = reviewRows.some((r) => !String(r.type || '').trim());
+    const missingQuantity = reviewRows.some((r) => !String(r.quantity || '').trim());
+    if (missingType || missingQuantity) {
+      toast.error('Fill in Type and Quantity for every row before processing');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const { data } = await api.post('/stock/import', { rows: reviewRows });
       setLastResult(data);
+      setReviewRows(null);
 
       if (data.processedCount > 0) {
         toast.success(`Processed ${data.processedCount} transaction${data.processedCount === 1 ? '' : 's'}`);
@@ -141,56 +166,165 @@ const StockImportPage = () => {
         </p>
       </div>
 
-      <div className="glass animate-slide-up flex flex-col gap-4 rounded-xl p-6">
-        <div>
-          <h2 className="text-sm font-semibold text-text">Columns</h2>
-          <p className="mt-1 text-sm text-text-muted">
-            Use the same sheet you'd export from Products - <span className="font-mono text-xs">Product Name</span>,{' '}
-            <span className="font-mono text-xs">SKU</span>, <span className="font-mono text-xs">EAN</span>,{' '}
-            <span className="font-mono text-xs">Brand</span>, <span className="font-mono text-xs">Pack Size</span>,{' '}
-            <span className="font-mono text-xs">MRP</span>, <span className="font-mono text-xs">Expiry Date</span> -
-            and just add two columns: <span className="font-mono text-xs">Type</span> and{' '}
-            <span className="font-mono text-xs">Quantity</span>. <span className="font-mono text-xs">Reference</span>{' '}
-            is required for returns, <span className="font-mono text-xs">Note</span> is optional.
-          </p>
-          <p className="mt-2 text-sm text-text-muted">
-            <span className="font-medium text-text">Type</span> must be one of:{' '}
-            {STOCK_TRANSACTION_TYPES.join(', ')}.
-          </p>
-          <p className="mt-1 text-xs text-text-muted">
-            Each row is matched to the real product by SKU (falling back to EAN) - the other
-            product columns are just there for your own reference and are never written back to
-            the product. The matched product's quantity is updated and the move is logged in
-            Transactions exactly like using Stock In / Stock Out / Return manually. A Damaged
-            Return does not change quantity - it's logged under Damaged Products instead.
-          </p>
-        </div>
+      {!reviewRows && (
+        <div className="glass animate-slide-up flex flex-col gap-4 rounded-xl p-6">
+          <div>
+            <h2 className="text-sm font-semibold text-text">Columns</h2>
+            <p className="mt-1 text-sm text-text-muted">
+              Use the same sheet you'd export from Products - <span className="font-mono text-xs">Product Name</span>,{' '}
+              <span className="font-mono text-xs">SKU</span>, <span className="font-mono text-xs">EAN</span>,{' '}
+              <span className="font-mono text-xs">Brand</span>, <span className="font-mono text-xs">Pack Size</span>,{' '}
+              <span className="font-mono text-xs">MRP</span>, <span className="font-mono text-xs">Expiry Date</span>.{' '}
+              <span className="font-mono text-xs">Type</span>, <span className="font-mono text-xs">Quantity</span>,{' '}
+              <span className="font-mono text-xs">Reference</span> and <span className="font-mono text-xs">Note</span>{' '}
+              are optional in the sheet - you can fill them in for each row on the next screen instead.
+            </p>
+            <p className="mt-2 text-sm text-text-muted">
+              <span className="font-medium text-text">Type</span>, once set, must be one of:{' '}
+              {STOCK_TRANSACTION_TYPES.join(', ')}.
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              Each row is matched to the real product by SKU (falling back to EAN) - the other
+              product columns are just there for your own reference and are never written back to
+              the product. The matched product's quantity is updated and the move is logged in
+              Transactions exactly like using Stock In / Stock Out / Return manually. A Damaged
+              Return does not change quantity - it's logged under Damaged Products instead.
+            </p>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleImportFile}
-            className="hidden"
-          />
-          <button
-            onClick={handleImportClick}
-            disabled={importing}
-            className="cursor-pointer flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
-          >
-            <LuUpload size={16} />
-            {importing ? 'Importing…' : 'Import Excel'}
-          </button>
-          <button
-            onClick={handleDownloadTemplate}
-            className="cursor-pointer flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-4 py-2.5 text-sm font-semibold text-text hover:bg-surface"
-          >
-            <LuDownload size={16} />
-            Download Template
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleImportFile}
+              className="hidden"
+            />
+            <button
+              onClick={handleImportClick}
+              className="cursor-pointer flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+            >
+              <LuUpload size={16} />
+              Import Excel
+            </button>
+            <button
+              onClick={handleDownloadTemplate}
+              className="cursor-pointer flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-4 py-2.5 text-sm font-semibold text-text hover:bg-surface"
+            >
+              <LuDownload size={16} />
+              Download Template
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {reviewRows && (
+        <div className="glass animate-slide-up flex flex-col gap-4 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-text">Review before processing</h2>
+              <p className="text-xs text-text-muted">
+                {reviewRows.length} row{reviewRows.length === 1 ? '' : 's'} - fill in Type and Quantity for each
+                (Reference is required for returns)
+              </p>
+            </div>
+            <button
+              onClick={cancelReview}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-text-muted hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              <LuX size={15} />
+              Cancel
+            </button>
+          </div>
+
+          <div className="h-96 min-w-0 overflow-hidden overflow-y-auto rounded-xl border border-border">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-max whitespace-nowrap text-left text-sm">
+                <thead className="sticky top-0 z-10 bg-surface">
+                  <tr className="border-b border-border text-xs uppercase tracking-wide text-text-muted">
+                    <th className="px-3 py-2.5 font-medium">Product</th>
+                    <th className="px-3 py-2.5 font-medium">SKU</th>
+                    <th className="px-3 py-2.5 font-medium">EAN</th>
+                    <th className="px-3 py-2.5 font-medium">Type</th>
+                    <th className="px-3 py-2.5 font-medium">Quantity</th>
+                    <th className="px-3 py-2.5 font-medium">Reference</th>
+                    <th className="px-3 py-2.5 font-medium">Note</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {reviewRows.map((row, i) => {
+                    const isReturn = RETURN_TYPES.includes(row.type);
+                    return (
+                      <tr key={i}>
+                        <td className="max-w-[220px] truncate px-3 py-2 font-medium text-text" title={row.name}>
+                          {row.name || '—'}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs text-text-muted">{row.sku || '—'}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-text-muted">{row.ean || '—'}</td>
+                        <td className="px-3 py-2">
+                          <select
+                            value={row.type || ''}
+                            onChange={(e) => updateRow(i, 'type', e.target.value)}
+                            className="rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-sm text-text outline-none focus:border-emerald-500/60"
+                          >
+                            <option value="">Select type...</option>
+                            {STOCK_TRANSACTION_TYPES.map((t) => (
+                              <option key={t} value={t}>
+                                {t}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={1}
+                            value={row.quantity ?? ''}
+                            onChange={(e) => updateRow(i, 'quantity', e.target.value)}
+                            className="w-24 rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-sm text-text outline-none focus:border-emerald-500/60"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            value={row.referenceId || ''}
+                            onChange={(e) => updateRow(i, 'referenceId', e.target.value)}
+                            placeholder={isReturn ? 'Required' : 'Optional'}
+                            className="w-32 rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 font-mono text-xs text-text outline-none focus:border-emerald-500/60"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            value={row.note || ''}
+                            onChange={(e) => updateRow(i, 'note', e.target.value)}
+                            className="w-40 rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-sm text-text outline-none focus:border-emerald-500/60"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={cancelReview}
+              className="rounded-lg px-4 py-2.5 text-sm font-medium text-text-muted hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleProcessImport}
+              disabled={importing}
+              className="cursor-pointer flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+            >
+              <LuUpload size={16} />
+              {importing ? 'Processing…' : 'Process Import'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {lastResult && (
         <div className="glass animate-slide-up rounded-xl p-6">
