@@ -52,9 +52,13 @@ const StockInPage = () => {
   const selected = products.find((p) => p._id === productId);
 
   const resetForm = () => {
+    setProductId("");
     setQuantity("");
     setNote("");
+    setTransactionType("stock_in");
+    setReturnType("customer");
     setReferenceId("");
+    setScanValue("");
   };
 
   const startScanner = () => {

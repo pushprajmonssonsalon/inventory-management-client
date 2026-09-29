@@ -184,6 +184,7 @@ const StockOutPage = () => {
         note,
       });
       toast.success(`Dispatched ${quantity} units of ${selected?.name}`);
+      setProductId("");
       setQuantity("");
       setNote("");
       setScanValue("");
